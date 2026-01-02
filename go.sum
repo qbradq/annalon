@@ -1,0 +1,10 @@
+github.com/go-gl/mathgl v1.2.0 h1:v2eOj/y1B2afDxF6URV1qCYmo1KW08lAMtTbOn3KXCY=
+github.com/go-gl/mathgl v1.2.0/go.mod h1:pf9+b5J3LFP7iZ4XXaVzZrCle0Q/vNpB/vDe5+3ulRE=
+github.com/qbradq/q2d v0.0.0-20251129230231-f407b354fc1d h1:szuaoFY7ArRJznx2+0mlQPtQKA101mRTfxELiS5gaHI=
+github.com/qbradq/q2d v0.0.0-20251129230231-f407b354fc1d/go.mod h1:J1hHmo3CBb6RBwTs/rZX7wQ5AGu3sQ7EmbYsXO7PWKA=
+github.com/qbradq/q3d v0.0.0-20251208110450-913bd2d9a85b h1:UmYIAe9o4YluWmTNB24G83tf2582Zysd0BdZbrc1i1w=
+github.com/qbradq/q3d v0.0.0-20251208110450-913bd2d9a85b/go.mod h1:Pdtc10LZHUUKHTKXQrIpAb25XTFHsluKLbPRjcfeF9s=
+golang.org/x/image v0.33.0 h1:LXRZRnv1+zGd5XBUVRFmYEphyyKJjQjCRiOuAP3sZfQ=
+golang.org/x/image v0.33.0/go.mod h1:DD3OsTYT9chzuzTQt+zMcOlBHgfoKQb1gry8p76Y1sc=
+golang.org/x/text v0.31.0 h1:aC8ghyu4JhP8VojJ2lEHBnochRno1sgL6nEi9WGFGMM=
+golang.org/x/text v0.31.0/go.mod h1:tKRAlv61yKIjGGHX/4tP1LTbc13YSec1pxVEWXzfoeM=

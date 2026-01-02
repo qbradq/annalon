@@ -1,0 +1,6 @@
+[submodule "lib/q3d"]
+	path = lib/q3d
+	url = git@github.com:qbradq/q3d.git
+[submodule "lib/q2d"]
+	path = lib/q2d
+	url = git@github.com:qbradq/q2d.git
