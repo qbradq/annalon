@@ -4,8 +4,8 @@ import (
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/qbradq/annalon/internal/ui"
 )
 
 const (
@@ -14,7 +14,8 @@ const (
 )
 
 type Game struct {
-	Scale int
+	Scale   int
+	console *ui.Console
 }
 
 func (g *Game) Update() error {
@@ -35,11 +36,13 @@ func (g *Game) Update() error {
 		ebiten.SetFullscreen(!ebiten.IsFullscreen())
 	}
 
+	g.console.Update()
+
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	ebitenutil.DebugPrint(screen, "Hello World")
+	g.console.Draw(screen)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -48,7 +51,8 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 
 func Main() {
 	game := &Game{
-		Scale: 2,
+		Scale:   2,
+		console: ui.NewConsole(),
 	}
 
 	ebiten.SetWindowSize(LogicalWidth*game.Scale, LogicalHeight*game.Scale)
