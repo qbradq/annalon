@@ -18,10 +18,11 @@ Annalon targets the following platforms:
 
 Annalon is built using Go 1.25+ and uses the following libraries:
 
-- Ebitengine v2.7 (platform abstraction)
+- https://github.com/hajimehoshi/ebiten/v2 (platform abstraction)
 - https://github.com/qbradq/q3d (3D rendering)
 - https://github.com/qbradq/q2d (2D rendering)
 - https://github.com/go-gl/mathgl/mgl32 (3D math)
+- https://github.com/mitchellh/go-wordwrap (text wrapping)
 
 ## Building
 
