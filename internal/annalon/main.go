@@ -3,8 +3,11 @@ package annalon
 import (
 	"math"
 
+	"os"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/qbradq/annalon/internal/command"
 	"github.com/qbradq/annalon/internal/ui"
 )
 
@@ -50,9 +53,18 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 }
 
 func Main() {
+	interpreter := command.NewInterpreter()
+	interpreter.RegisterBuiltins()
+	interpreter.SetQuitHandler(func() {
+		os.Exit(0)
+	})
+
+	console := ui.NewConsole(interpreter)
+	command.SetPrinter(console.Log)
+
 	game := &Game{
 		Scale:   2,
-		console: ui.NewConsole(),
+		console: console,
 	}
 
 	ebiten.SetWindowSize(LogicalWidth*game.Scale, LogicalHeight*game.Scale)

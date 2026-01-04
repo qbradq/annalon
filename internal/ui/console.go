@@ -7,6 +7,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/mitchellh/go-wordwrap"
+	"github.com/qbradq/annalon/internal/command"
 	"github.com/qbradq/q2d"
 	"golang.org/x/image/font"
 )
@@ -37,16 +38,18 @@ type Console struct {
 	input     string
 	cursorPos int
 
-	visibility Visibility
+	visibility  Visibility
+	interpreter *command.Interpreter
 }
 
-func NewConsole() *Console {
+func NewConsole(interpreter *command.Interpreter) *Console {
 	c := &Console{
 		buffer:       q2d.NewImage(ConsoleWidth, ConsoleHeight),
 		ebitenBuffer: ebiten.NewImage(ConsoleWidth, ConsoleHeight),
 		logHistory:   make([]string, 0, MaxHistory),
 		historyIndex: -1,
 		visibility:   VisibilityFull,
+		interpreter:  interpreter,
 	}
 
 	c.Log("Welcome to Annalon Console!")
@@ -190,8 +193,9 @@ func (c *Console) addToHistory(cmd string) {
 }
 
 func (c *Console) executeCommand(cmd string) {
-	// Stub
-	c.Log("Unknown command: " + cmd)
+	if err := c.interpreter.Execute(cmd); err != nil {
+		c.Log("Error: " + err.Error())
+	}
 }
 
 func (c *Console) Draw(screen *ebiten.Image) {

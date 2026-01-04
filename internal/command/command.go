@@ -9,6 +9,20 @@ import (
 // It receives the arguments passed to the command.
 type Command func(args []string) error
 
+var printer func(string)
+
+// SetPrinter sets the function used for printing output.
+func SetPrinter(fn func(string)) {
+	printer = fn
+}
+
+// Printf formats according to a format specifier and writes to the printer.
+func Printf(format string, a ...any) {
+	if printer != nil {
+		printer(fmt.Sprintf(format, a...))
+	}
+}
+
 // CommandInfo holds the command function and its help text.
 type CommandInfo struct {
 	Name string

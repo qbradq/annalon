@@ -22,16 +22,16 @@ func (i *Interpreter) cmdHelp(args []string) error {
 			names = append(names, name)
 		}
 		sort.Strings(names)
-		fmt.Println("Available commands:")
+		Printf("Available commands:")
 		for _, name := range names {
-			fmt.Printf("  %s\n", name)
+			Printf("  %s", name)
 		}
 		return nil
 	}
 
 	cmdName := args[0]
 	if cmd, ok := i.commands[strings.ToLower(cmdName)]; ok {
-		fmt.Printf("%s\n  %s\n", cmd.Name, cmd.Help)
+		Printf("%s\n  %s", cmd.Name, cmd.Help)
 	} else {
 		return fmt.Errorf("unknown command: %s", cmdName)
 	}
