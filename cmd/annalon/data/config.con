@@ -1,0 +1,15 @@
+# Player configuration script for Annalon
+
+# Standard binds
+bind "w" "+forward"
+bind "s" "+back"
+bind "a" "+left"
+bind "d" "+right"
+bind "left" "+turn_left"
+bind "right" "+turn_right"
+bind "up" "+lean_forward"
+bind "down" "+lean_back"
+bind "space" "+jump"
+bind "ctrl" "+crouch"
+bind "shift" "+speed"
+bind "esc" "toggle_menu"

@@ -51,6 +51,24 @@ func NewInterpreter() *Interpreter {
 	}
 }
 
+// GetBoolVars returns a copy of the boolean variables map.
+func (i *Interpreter) GetBoolVars() map[string]bool {
+	result := make(map[string]bool)
+	for k, v := range i.boolVars {
+		result[k] = v
+	}
+	return result
+}
+
+// GetStringVars returns a copy of the string variables map.
+func (i *Interpreter) GetStringVars() map[string]string {
+	result := make(map[string]string)
+	for k, v := range i.stringVars {
+		result[k] = v
+	}
+	return result
+}
+
 // Register adds a new command to the interpreter.
 func (i *Interpreter) Register(name, help string, cmd Command) {
 	i.commands[strings.ToLower(name)] = CommandInfo{
@@ -82,6 +100,11 @@ func (i *Interpreter) GetString(name string) string {
 	return i.stringVars[strings.ToLower(name)]
 }
 
+// DeleteString deletes a string variable.
+func (i *Interpreter) DeleteString(name string) {
+	delete(i.stringVars, strings.ToLower(name))
+}
+
 // SetBool sets a boolean variable.
 func (i *Interpreter) SetBool(name string, value bool) {
 	i.boolVars[strings.ToLower(name)] = value
@@ -92,9 +115,40 @@ func (i *Interpreter) GetBool(name string) bool {
 	return i.boolVars[strings.ToLower(name)]
 }
 
+// DeleteBool deletes a boolean variable.
+func (i *Interpreter) DeleteBool(name string) {
+	delete(i.boolVars, strings.ToLower(name))
+}
+
+// ClearEnv clears the environment (vars, aliases, bindings).
+func (i *Interpreter) ClearEnv() {
+	i.stringVars = make(map[string]string)
+	i.boolVars = make(map[string]bool)
+	i.aliases = make(map[string]string)
+	i.bindings = make(map[string]string)
+}
+
 // AddAlias adds a command alias.
 func (i *Interpreter) AddAlias(name, cmdLine string) {
 	i.aliases[strings.ToLower(name)] = cmdLine
+}
+
+// GetAliases returns a copy of the aliases map.
+func (i *Interpreter) GetAliases() map[string]string {
+	result := make(map[string]string)
+	for k, v := range i.aliases {
+		result[k] = v
+	}
+	return result
+}
+
+// GetBindings returns a copy of the bindings map.
+func (i *Interpreter) GetBindings() map[string]string {
+	result := make(map[string]string)
+	for k, v := range i.bindings {
+		result[k] = v
+	}
+	return result
 }
 
 // Execute parses and runs a command line.

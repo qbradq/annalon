@@ -1,12 +1,15 @@
 package annalon
 
 import (
+	"io"
 	"math"
+	"path/filepath"
 
 	"os"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/qbradq/annalon/assets"
 	"github.com/qbradq/annalon/internal/command"
 	"github.com/qbradq/annalon/internal/ui"
 )
@@ -61,6 +64,31 @@ func Main() {
 
 	console := ui.NewConsole(interpreter)
 	command.SetPrinter(console.Log)
+
+	// Startup Logic
+	dataDir := "data"
+	configFile := filepath.Join(dataDir, "config.con")
+	if _, err := os.Stat(configFile); os.IsNotExist(err) {
+		// Copy from assets
+		src, err := assets.FS.Open("data/config.default.con")
+		if err == nil {
+			// We can't defer in a long running loop or function easily without closure,
+			// but Main is one-shot.
+			// Ideally check errors.
+			os.MkdirAll(dataDir, 0755)
+			dst, err := os.Create(configFile)
+			if err == nil {
+				io.Copy(dst, src)
+				dst.Close()
+			}
+			src.Close()
+		}
+	}
+
+	// Execute init script
+	if err := interpreter.ExecFile("data/init.con"); err != nil {
+		command.Printf("Failed to execute init.con: %v", err)
+	}
 
 	game := &Game{
 		Scale:   2,

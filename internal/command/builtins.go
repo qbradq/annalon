@@ -13,6 +13,8 @@ func (i *Interpreter) RegisterBuiltins() {
 	i.Register("set", "Sets a string variable.", i.cmdSet)
 	i.Register("alias", "Creates a command alias.", i.cmdAlias)
 	i.Register("bind", "Binds a command to an input.", i.cmdBind)
+	i.Register("env", "Manages environment variables.", i.cmdEnv)
+	i.Register("exec", "Executes commands from a file.", i.cmdExec)
 }
 
 func (i *Interpreter) cmdHelp(args []string) error {
@@ -52,6 +54,18 @@ func (i *Interpreter) cmdSet(args []string) error {
 }
 
 func (i *Interpreter) cmdAlias(args []string) error {
+	if len(args) == 0 {
+		aliases := i.GetAliases()
+		var names []string
+		for name := range aliases {
+			names = append(names, name)
+		}
+		sort.Strings(names)
+		for _, name := range names {
+			Printf("%s: %s", name, aliases[name])
+		}
+		return nil
+	}
 	if len(args) < 2 {
 		return fmt.Errorf("usage: alias <name> <command...>")
 	}
@@ -67,6 +81,18 @@ func (i *Interpreter) cmdAlias(args []string) error {
 }
 
 func (i *Interpreter) cmdBind(args []string) error {
+	if len(args) == 0 {
+		bindings := i.GetBindings()
+		var inputs []string
+		for input := range bindings {
+			inputs = append(inputs, input)
+		}
+		sort.Strings(inputs)
+		for _, input := range inputs {
+			Printf("%s: %s", input, bindings[input])
+		}
+		return nil
+	}
 	if len(args) < 2 {
 		return fmt.Errorf("usage: bind <input> <command...>")
 	}
@@ -74,6 +100,52 @@ func (i *Interpreter) cmdBind(args []string) error {
 	cmdLine := strings.Join(args[1:], " ")
 	i.Bind(input, cmdLine)
 	return nil
+}
+
+func (i *Interpreter) cmdEnv(args []string) error {
+	if len(args) == 0 {
+		// List all variables
+		stringVars := i.GetStringVars()
+		var sNames []string
+		for name := range stringVars {
+			sNames = append(sNames, name)
+		}
+		sort.Strings(sNames)
+
+		boolVars := i.GetBoolVars()
+		var bNames []string
+		for name := range boolVars {
+			bNames = append(bNames, name)
+		}
+		sort.Strings(bNames)
+
+		for _, name := range sNames {
+			Printf("%s = \"%s\"", name, stringVars[name])
+		}
+		for _, name := range bNames {
+			Printf("%s = %t", name, boolVars[name])
+		}
+		return nil
+	}
+
+	subCmd := strings.ToLower(args[0])
+	if subCmd == "clear" {
+		i.ClearEnv()
+		return nil
+	} else if subCmd == "delete" {
+		if len(args) < 2 {
+			return fmt.Errorf("usage: env delete <variable>")
+		}
+		varName := args[1]
+		if strings.HasPrefix(varName, "+") {
+			i.DeleteBool(strings.TrimPrefix(varName, "+"))
+		} else {
+			i.DeleteString(varName)
+		}
+		return nil
+	}
+
+	return fmt.Errorf("usage: env [delete|clear]")
 }
 
 // Bind associates an input event with a command line.

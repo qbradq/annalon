@@ -2,5 +2,5 @@ package assets
 
 import "embed"
 
-//go:embed maps textures
+//go:embed maps textures data
 var FS embed.FS
