@@ -29,9 +29,8 @@ func TestParse(t *testing.T) {
 	}
 
 	// Check Brushes count
-	// Visual check of test.map: looks like 6 or 7 brushes? "brush 0" to "brush 6" -> 7 brushes.
-	if len(ent0.Brushes) != 7 {
-		t.Errorf("expected 7 brushes in worldspawn, got %d", len(ent0.Brushes))
+	if len(ent0.Brushes) != 9 {
+		t.Errorf("expected 9 brushes in worldspawn, got %d", len(ent0.Brushes))
 	}
 
 	// Check first brush

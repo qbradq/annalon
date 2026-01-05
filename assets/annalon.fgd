@@ -1,0 +1,16 @@
+@BaseClass = Entity : "Base class for all entities"
+[
+    tag(string) : "Tag name" : "" : "Tag name used to identify and group entities."
+    spawnflags(flags) =
+    [
+        1 : "Active" : 1
+    ]
+]
+
+@BaseClass base(Entity) size(-16 -16 -54, 16 16 10) color(0 255 0) = Actor : "Base class for all actors."
+[
+]
+
+@PointClass base(Actor) = teleport_destination : "Destination marker for actors."
+[
+]
