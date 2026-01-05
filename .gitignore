@@ -35,3 +35,6 @@ go.work.sum
 # Working files
 /PROMPT.md
 /PROMPT.*.md
+
+# Program output files
+/data

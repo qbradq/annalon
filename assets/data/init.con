@@ -1,0 +1,10 @@
+################################################################################
+# Initialization script for Annalon
+################################################################################
+env clear
+
+# Standard aliases
+alias exit quit
+
+# Let the player's configuration take over now
+exec "@config.con"
