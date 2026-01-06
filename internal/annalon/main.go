@@ -23,8 +23,10 @@ import (
 )
 
 const (
-	LogicalWidth  = 640
-	LogicalHeight = 360
+	LogicalWidth   = 640
+	LogicalHeight  = 360
+	ViewportWidth  = 320
+	ViewportHeight = 180
 )
 
 type Game struct {
@@ -40,9 +42,10 @@ type Game struct {
 	cameraYaw     float64
 	cube          *q3d.Entity
 
-	uiLayer       *q2d.Image
-	uiLayerEbiten *ebiten.Image
-	showPerf      bool
+	uiLayer        *q2d.Image
+	uiLayerEbiten  *ebiten.Image
+	viewportEbiten *ebiten.Image // Intermediate image for 3D scaling
+	showPerf       bool
 }
 
 func (g *Game) Update() error {
@@ -180,8 +183,14 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	g.framebuffer.Clear(color.RGBA{0, 0, 0, 255})
 	g.camera.RenderScene(g.renderContext, g.scene, nil)
 
-	// Blit framebuffer to screen
-	screen.WritePixels(g.framebuffer.Pix)
+	// Blit framebuffer to intermediate ebiten image
+	g.viewportEbiten.WritePixels(g.framebuffer.Pix)
+
+	// Draw 3D viewport scaled up to screen
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Scale(float64(LogicalWidth)/float64(ViewportWidth), float64(LogicalHeight)/float64(ViewportHeight))
+	op.Filter = ebiten.FilterNearest
+	screen.DrawImage(g.viewportEbiten, op)
 
 	// UI Layer
 	g.uiLayer.Fill(q2d.Color{0, 0, 0, 0}) // Clear to transparent
@@ -369,8 +378,7 @@ func Main() {
 	}
 
 	// 3D Initialization
-	width, height := LogicalWidth, LogicalHeight
-	fb := q3d.NewFrameBuffer(width, height)
+	fb := q3d.NewFrameBuffer(ViewportWidth, ViewportHeight)
 	scene := q3d.NewScene()
 	// Set ambient light to full as per requirements
 	scene.AmbientLight = color.RGBA{255, 255, 255, 255}
@@ -378,8 +386,9 @@ func Main() {
 	rc := q3d.NewRenderContext()
 
 	// UI Initialization
-	uiLayer := q2d.NewImage(width, height)
-	uiLayerEbiten := ebiten.NewImage(width, height)
+	uiLayer := q2d.NewImage(LogicalWidth, LogicalHeight)
+	uiLayerEbiten := ebiten.NewImage(LogicalWidth, LogicalHeight)
+	viewportEbiten := ebiten.NewImage(ViewportWidth, ViewportHeight)
 
 	// Load Texture
 	texFile, err := assets.FS.Open("textures/grid_blue.png")
@@ -436,18 +445,19 @@ func Main() {
 	initialPitch := math.Atan2(-32, 512)
 
 	game := &Game{
-		Scale:         2,
-		console:       console,
-		interpreter:   interpreter,
-		scene:         scene,
-		framebuffer:   fb,
-		renderContext: rc,
-		camera:        camera,
-		cameraPitch:   initialPitch,
-		cameraYaw:     0,
-		cube:          cube,
-		uiLayer:       uiLayer,
-		uiLayerEbiten: uiLayerEbiten,
+		Scale:          2,
+		console:        console,
+		interpreter:    interpreter,
+		scene:          scene,
+		framebuffer:    fb,
+		renderContext:  rc,
+		camera:         camera,
+		cameraPitch:    initialPitch,
+		cameraYaw:      0,
+		cube:           cube,
+		uiLayer:        uiLayer,
+		uiLayerEbiten:  uiLayerEbiten,
+		viewportEbiten: viewportEbiten,
 	}
 
 	InitInputMappings() // Initialize input mappings
