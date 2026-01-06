@@ -5,6 +5,7 @@ import (
 	"math"
 	"path/filepath"
 	"runtime"
+	"strconv"
 
 	"os"
 
@@ -42,6 +43,9 @@ type Game struct {
 	cameraYaw     float64
 	cube          *q3d.Entity
 
+	prevMouseX int
+	prevMouseY int
+
 	uiLayer        *q2d.Image
 	uiLayerEbiten  *ebiten.Image
 	viewportEbiten *ebiten.Image // Intermediate image for 3D scaling
@@ -71,10 +75,48 @@ func (g *Game) Update() error {
 		g.showPerf = !g.showPerf
 	}
 
+	// Handle cursor when console is visible
+	if g.console.IsVisible() {
+		ebiten.SetCursorMode(ebiten.CursorModeVisible)
+	}
+
 	g.console.Update()
+
+	// Track mouse position every frame to avoid jumps when toggling console
+	mx, my := ebiten.CursorPosition()
+	dx := float64(mx - g.prevMouseX)
+	dy := float64(my - g.prevMouseY)
+	g.prevMouseX, g.prevMouseY = mx, my
 
 	// Only process game input if console is hidden
 	if !g.console.IsVisible() {
+		// Capture cursor
+		ebiten.SetCursorMode(ebiten.CursorModeCaptured)
+
+		// Parse sensitivity
+		sXStr := g.interpreter.GetString("mouselook_sense_x")
+		sYStr := g.interpreter.GetString("mouselook_sense_y")
+
+		sensX, errX := strconv.ParseFloat(sXStr, 64)
+		sensY, errY := strconv.ParseFloat(sYStr, 64)
+
+		if errX != nil {
+			sensX = 0.5
+		}
+		if errY != nil {
+			sensY = 0.5
+		}
+
+		// Apply Inversion
+		if g.interpreter.GetBool("mouselook_invert_y") {
+			dy = -dy
+		}
+
+		// Update Camera
+		baseSens := 0.005
+		g.cameraYaw -= dx * sensX * baseSens
+		g.cameraPitch -= dy * sensY * baseSens
+
 		ProcessInput(g.interpreter)
 
 		// Movement Logic
