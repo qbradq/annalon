@@ -38,3 +38,4 @@ go.work.sum
 
 # Program output files
 /data
+/cmd/annalon/data

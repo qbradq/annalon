@@ -87,7 +87,8 @@ func InitInputMappings() {
 	regKey(ebiten.KeyBackspace, "backspace")
 	regKey(ebiten.KeyTab, "tab")
 	regKey(ebiten.KeyShift, "shift")
-	regKey(ebiten.KeyControl, "ctrl")
+	regKey(ebiten.KeyControlLeft, "ctrl")
+	regKey(ebiten.KeyControlRight, "ctrl")
 	regKey(ebiten.KeyAlt, "alt")
 
 	// Arrows

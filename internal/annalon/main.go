@@ -34,6 +34,8 @@ type Game struct {
 	framebuffer   *q3d.FrameBuffer
 	renderContext *q3d.RenderContext
 	camera        *q3d.Camera
+	cameraPitch   float64
+	cameraYaw     float64
 	cube          *q3d.Entity
 }
 
@@ -67,31 +69,46 @@ func (g *Game) Update() error {
 			speed *= 5
 		}
 
-		rotSpeed := float32(0.02)
+		rotSpeed := 0.02
 
 		// Rotation
-		// Yaw (Turn Left/Right) - Rotate around Y axis
+		// Yaw (Turn Left/Right)
 		if g.interpreter.GetBool("turn_left") {
-			g.camera.Rotation = g.camera.Rotation.Mul(mgl32.QuatRotate(rotSpeed, mgl32.Vec3{0, 1, 0}))
+			g.cameraYaw += rotSpeed
 		}
 		if g.interpreter.GetBool("turn_right") {
-			g.camera.Rotation = g.camera.Rotation.Mul(mgl32.QuatRotate(-rotSpeed, mgl32.Vec3{0, 1, 0}))
+			g.cameraYaw -= rotSpeed
 		}
 
-		// Pitch (Look Up/Down) - Rotate around local X axis
+		// Pitch (Look Up/Down)
 		if g.interpreter.GetBool("look_up") {
-			g.camera.Rotation = g.camera.Rotation.Mul(mgl32.QuatRotate(rotSpeed, mgl32.Vec3{1, 0, 0}))
+			g.cameraPitch += rotSpeed
 		}
 		if g.interpreter.GetBool("look_down") {
-			g.camera.Rotation = g.camera.Rotation.Mul(mgl32.QuatRotate(-rotSpeed, mgl32.Vec3{1, 0, 0}))
+			g.cameraPitch -= rotSpeed
 		}
-		g.camera.Rotation = g.camera.Rotation.Normalize()
+
+		// Clamp pitch to avoid gimbal lock or flipping (e.g. +/- 89 degrees)
+		// 89 degrees is approx 1.55 radians
+		if g.cameraPitch > 1.55 {
+			g.cameraPitch = 1.55
+		}
+		if g.cameraPitch < -1.55 {
+			g.cameraPitch = -1.55
+		}
+
+		// Reconstruct Rotation Quaternion
+		// Order: Apply Yaw (Y axis), then Pitch (Local X axis)
+		// Or rather: qYaw * qPitch
+		qYaw := mgl32.QuatRotate(float32(g.cameraYaw), mgl32.Vec3{0, 1, 0})
+		qPitch := mgl32.QuatRotate(float32(g.cameraPitch), mgl32.Vec3{1, 0, 0})
+		g.camera.Rotation = qYaw.Mul(qPitch).Normalize()
 
 		// Calculate Forward and Right vectors for movement
 		// Forward matches (0, 0, -1) rotated by camera rotation
-		// But for movement "locked to XZ plane", we want the flat forward.
-		forward := g.camera.Rotation.Rotate(mgl32.Vec3{0, 0, -1})
-		right := g.camera.Rotation.Rotate(mgl32.Vec3{1, 0, 0})
+		// But for movement "locked to XZ plane", we just use the Yaw.
+		forward := qYaw.Rotate(mgl32.Vec3{0, 0, -1})
+		right := qYaw.Rotate(mgl32.Vec3{1, 0, 0})
 
 		// Flatten vectors to XZ plane
 		forward[1] = 0
@@ -227,6 +244,39 @@ func createCubeMesh(size float32, texture *q3d.Texture) *q3d.Mesh {
 	return mesh
 }
 
+func createPlaneMesh(size float32, texture *q3d.Texture) *q3d.Mesh {
+	mesh := &q3d.Mesh{}
+	s := size / 2
+
+	// Helper to create a vertex
+	v := func(x, y, z, u, v float32) q3d.Vertex {
+		return q3d.Vertex{
+			Position: mgl32.Vec3{x, y, z},
+			TexCoord: mgl32.Vec2{u, v},
+			Color:    color.RGBA{255, 255, 255, 255},
+		}
+	}
+
+	// Top face (Y+) - Facing up
+	// To match the cube's top face winding
+	// v(-s, s, s, 0, 0) -> v(s, s, s, 1, 0) -> v(s, s, -s, 1, 1) -> v(-s, s, -s, 0, 1)
+	// We want this at Y=0 locally.
+	// UVs: I will use 0-16 for tiling to ensure it looks good and not like a giant pixelated mess.
+	// Assuming texture wrapping is supported or at least behaves reasonably.
+	// If not, I'll revert to 0-1. Given it's a grid texture, tiling is almost certainly desired.
+	// 1024 / 64 = 16.
+	tiles := float32(16.0)
+
+	mesh.AddConvexPolygon(texture,
+		v(-s, 0, s, 0, 0),
+		v(s, 0, s, tiles, 0),
+		v(s, 0, -s, tiles, tiles),
+		v(-s, 0, -s, 0, tiles),
+	)
+
+	return mesh
+}
+
 func Main() {
 	interpreter := command.NewInterpreter()
 	interpreter.RegisterBuiltins()
@@ -301,6 +351,14 @@ func Main() {
 		Rotation: mgl32.QuatIdent(),
 		Mesh:     cubeMesh,
 	}
+	gPlaneMesh := createPlaneMesh(1024, texture)
+	ground := &q3d.Entity{
+		Position: mgl32.Vec3{0, -64, 0},
+		Rotation: mgl32.QuatIdent(),
+		Mesh:     gPlaneMesh,
+	}
+	scene.AddEntity(ground)
+
 	scene.AddEntity(cube)
 
 	// Setup Camera
@@ -326,13 +384,11 @@ func Main() {
 	// But UpdateViewMatrix GENERATES the target from the Rotation.
 	// So we must set the Rotation such that (0,0,-1) rotated points to the target.
 	// Target is Origin (0,0,0). Camera is at (0, 32, 32).
-	// Direction vector = Origin - Camera = (0, -32, -32). Normalized: (0, -0.707, -0.707).
-	// We need a quaternion that rotates (0,0,-1) to (0, -0.707, -0.707).
-	// Use mgl32.QuatBetweenVectors.
-	direction := mgl32.Vec3{0, 0, 0}.Sub(camera.Position).Normalize()
-	camera.Rotation = mgl32.QuatBetweenVectors(mgl32.Vec3{0, 0, -1}, direction)
-
-	camera.UpdateMatrices() // Initial update
+	// Initial Camera Rotation (Pitch/Yaw)
+	// Position (0, 32, 512) looking at (0, 0, 0)
+	// Yaw: 0 (looking down -Z)
+	// Pitch: atan2(dy, dz) = atan2(-32, 512)
+	initialPitch := math.Atan2(-32, 512)
 
 	game := &Game{
 		Scale:         2,
@@ -342,6 +398,8 @@ func Main() {
 		framebuffer:   fb,
 		renderContext: rc,
 		camera:        camera,
+		cameraPitch:   initialPitch,
+		cameraYaw:     0,
 		cube:          cube,
 	}
 
