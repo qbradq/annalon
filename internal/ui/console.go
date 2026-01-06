@@ -214,13 +214,11 @@ func (c *Console) Draw(screen *ebiten.Image) {
 	bottomY := ConsoleHeight - lineHeight
 
 	// Draw Input
-	prompt := "> " + c.input
-	c.buffer.Text(q2d.Point{0, bottomY}, q2d.Color{255, 255, 255, 255}, q2d.FontNormal, false, prompt)
+	c.buffer.Text(q2d.Point{0, bottomY}, q2d.Color{255, 255, 255, 255}, q2d.FontNormal, false, "> %s", c.input)
 
 	// Draw Cursor
 	// Measure width of prompt up to cursor
-	promptCursor := "> " + c.input[:c.cursorPos]
-	cursorX := font.MeasureString(q2d.FontNormal, promptCursor).Ceil()
+	cursorX := font.MeasureString(q2d.FontNormal, "> "+c.input[:c.cursorPos]).Ceil()
 
 	// Draw underline cursor
 	c.buffer.HLine(bottomY+9, cursorX, cursorX+8, 2, q2d.Color{255, 255, 255, 255}) // Underline cursor
@@ -231,7 +229,7 @@ func (c *Console) Draw(screen *ebiten.Image) {
 		if drawY < 0 {
 			break
 		}
-		c.buffer.Text(q2d.Point{0, drawY}, q2d.Color{200, 200, 200, 255}, q2d.FontNormal, false, c.logHistory[i])
+		c.buffer.Text(q2d.Point{0, drawY}, q2d.Color{200, 200, 200, 255}, q2d.FontNormal, false, "%s", c.logHistory[i])
 		drawY -= lineHeight
 	}
 
