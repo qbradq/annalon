@@ -235,3 +235,39 @@ func (i *Interpreter) Execute(line string) error {
 	}
 	return nil
 }
+
+// GetInverseBooleanCommands executes the inverse of any boolean set commands in the line.
+// E.g. `+forward` -> `-forward`, `-jump` -> `+jump`.
+// Non-boolean commands are ignored.
+// Multiple inverses are separated by semicolons.
+func (i *Interpreter) GetInverseBooleanCommands(line string) string {
+	cmds, err := ParseLine(line)
+	if err != nil {
+		return ""
+	}
+
+	var inverseCmds []string
+	for _, args := range cmds {
+		if len(args) == 0 {
+			continue
+		}
+		cmdName := strings.ToLower(args[0])
+
+		if strings.HasPrefix(cmdName, "+") {
+			varName := strings.TrimPrefix(cmdName, "+")
+			if len(varName) > 0 {
+				inverseCmds = append(inverseCmds, "-"+varName)
+			}
+		} else if strings.HasPrefix(cmdName, "-") {
+			varName := strings.TrimPrefix(cmdName, "-")
+			if len(varName) > 0 {
+				inverseCmds = append(inverseCmds, "+"+varName)
+			}
+		}
+	}
+
+	if len(inverseCmds) == 0 {
+		return ""
+	}
+	return strings.Join(inverseCmds, "; ")
+}

@@ -26,8 +26,9 @@ const (
 )
 
 type Game struct {
-	Scale   int
-	console *ui.Console
+	Scale       int
+	console     *ui.Console
+	interpreter *command.Interpreter
 
 	scene         *q3d.Scene
 	framebuffer   *q3d.FrameBuffer
@@ -55,6 +56,85 @@ func (g *Game) Update() error {
 	}
 
 	g.console.Update()
+
+	// Only process game input if console is hidden
+	if !g.console.IsVisible() {
+		ProcessInput(g.interpreter)
+
+		// Movement Logic
+		speed := float32(256.0 / 60.0)
+		if g.interpreter.GetBool("sprint") {
+			speed *= 5
+		}
+
+		rotSpeed := float32(0.02)
+
+		// Rotation
+		// Yaw (Turn Left/Right) - Rotate around Y axis
+		if g.interpreter.GetBool("turn_left") {
+			g.camera.Rotation = g.camera.Rotation.Mul(mgl32.QuatRotate(rotSpeed, mgl32.Vec3{0, 1, 0}))
+		}
+		if g.interpreter.GetBool("turn_right") {
+			g.camera.Rotation = g.camera.Rotation.Mul(mgl32.QuatRotate(-rotSpeed, mgl32.Vec3{0, 1, 0}))
+		}
+
+		// Pitch (Look Up/Down) - Rotate around local X axis
+		if g.interpreter.GetBool("look_up") {
+			g.camera.Rotation = g.camera.Rotation.Mul(mgl32.QuatRotate(rotSpeed, mgl32.Vec3{1, 0, 0}))
+		}
+		if g.interpreter.GetBool("look_down") {
+			g.camera.Rotation = g.camera.Rotation.Mul(mgl32.QuatRotate(-rotSpeed, mgl32.Vec3{1, 0, 0}))
+		}
+		g.camera.Rotation = g.camera.Rotation.Normalize()
+
+		// Calculate Forward and Right vectors for movement
+		// Forward matches (0, 0, -1) rotated by camera rotation
+		// But for movement "locked to XZ plane", we want the flat forward.
+		forward := g.camera.Rotation.Rotate(mgl32.Vec3{0, 0, -1})
+		right := g.camera.Rotation.Rotate(mgl32.Vec3{1, 0, 0})
+
+		// Flatten vectors to XZ plane
+		forward[1] = 0
+		right[1] = 0
+
+		if forward.Len() > 0.001 {
+			forward = forward.Normalize()
+		}
+		if right.Len() > 0.001 {
+			right = right.Normalize()
+		}
+
+		moveDir := mgl32.Vec3{0, 0, 0}
+
+		if g.interpreter.GetBool("forward") {
+			moveDir = moveDir.Add(forward)
+		}
+		if g.interpreter.GetBool("backward") {
+			moveDir = moveDir.Sub(forward)
+		}
+		if g.interpreter.GetBool("left") { // Strafe Left
+			moveDir = moveDir.Sub(right)
+		}
+		if g.interpreter.GetBool("right") { // Strafe Right
+			moveDir = moveDir.Add(right)
+		}
+
+		if moveDir.Len() > 0.001 {
+			moveDir = moveDir.Normalize().Mul(speed)
+			g.camera.Position = g.camera.Position.Add(moveDir)
+		}
+
+		// Vertical Movement (Y axis)
+		if g.interpreter.GetBool("jump") {
+			g.camera.Position = g.camera.Position.Add(mgl32.Vec3{0, speed, 0})
+		}
+		if g.interpreter.GetBool("crouch") {
+			g.camera.Position = g.camera.Position.Sub(mgl32.Vec3{0, speed, 0})
+		}
+	}
+
+	// Update Camera View Matrix
+	g.camera.UpdateMatrices()
 
 	// Rotate the cube
 	g.cube.Rotation = g.cube.Rotation.Mul(mgl32.QuatRotate(0.01, mgl32.Vec3{1, 0, 0})) // X axis
@@ -230,8 +310,8 @@ func Main() {
 			Rotation: mgl32.QuatIdent(),
 		},
 		FOV:          60,
-		Near:         0.1,
-		Far:          1000,
+		Near:         1,
+		Far:          8192,
 		RenderTarget: fb,
 	}
 	// Look at origin
@@ -257,12 +337,15 @@ func Main() {
 	game := &Game{
 		Scale:         2,
 		console:       console,
+		interpreter:   interpreter,
 		scene:         scene,
 		framebuffer:   fb,
 		renderContext: rc,
 		camera:        camera,
 		cube:          cube,
 	}
+
+	InitInputMappings() // Initialize input mappings
 
 	ebiten.SetWindowSize(LogicalWidth*game.Scale, LogicalHeight*game.Scale)
 	ebiten.SetWindowTitle("Annalon")

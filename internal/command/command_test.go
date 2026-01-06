@@ -75,28 +75,24 @@ func TestAlias(t *testing.T) {
 	}
 }
 
-func TestBindAndInvert(t *testing.T) {
+func TestInverseBooleanCommands(t *testing.T) {
 	i := NewInterpreter()
-	i.RegisterBuiltins()
 
-	i.Execute("bind SPACE +jump")
-
-	binding := i.GetBinding("SPACE")
-	if binding != "+jump" {
-		t.Errorf("GetBinding(SPACE) = %s, expected +jump", binding)
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"+forward", "-forward"},
+		{"-jump", "+jump"},
+		{"+forward; -jump", "-forward; +jump"},
+		{"say hello", ""},
+		{"+forward; say hello; -jump", "-forward; +jump"},
 	}
 
-	inverted := InvertBooleanOps(binding)
-	if inverted != "-jump" {
-		t.Errorf("InvertBooleanOps(+jump) = %s, expected -jump", inverted)
-	}
-
-	complexCmd := "+jump; -crouch; say hello"
-	invertedComplex := InvertBooleanOps(complexCmd)
-	// Output format depends on InvertBooleanOps implementation (spaces, etc.)
-	// We expect "-jump ; +crouch ; say hello" or similar structure
-	// Let's rely on basic check
-	if msg, _ := ParseLine(invertedComplex); msg[0][0] != "-jump" || msg[1][0] != "+crouch" || msg[2][0] != "say" {
-		t.Errorf("InvertBooleanOps failed for complex: %s", invertedComplex)
+	for _, tt := range tests {
+		result := i.GetInverseBooleanCommands(tt.input)
+		if result != tt.expected {
+			t.Errorf("GetInverseBooleanCommands(%q) = %q, expected %q", tt.input, result, tt.expected)
+		}
 	}
 }

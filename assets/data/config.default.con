@@ -2,7 +2,7 @@
 
 # Standard binds
 bind "w" "+forward"
-bind "s" "+back"
+bind "s" "+backward"
 bind "a" "+left"
 bind "d" "+right"
 bind "left" "+turn_left"
