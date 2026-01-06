@@ -4,6 +4,7 @@ import (
 	"io"
 	"math"
 	"path/filepath"
+	"runtime"
 
 	"os"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/qbradq/annalon/assets"
 	"github.com/qbradq/annalon/internal/command"
 	"github.com/qbradq/annalon/internal/ui"
+	"github.com/qbradq/q2d"
 	"github.com/qbradq/q3d"
 )
 
@@ -37,6 +39,10 @@ type Game struct {
 	cameraPitch   float64
 	cameraYaw     float64
 	cube          *q3d.Entity
+
+	uiLayer       *q2d.Image
+	uiLayerEbiten *ebiten.Image
+	showPerf      bool
 }
 
 func (g *Game) Update() error {
@@ -55,6 +61,11 @@ func (g *Game) Update() error {
 	// Handle Fullscreen Toggle (F10)
 	if inpututil.IsKeyJustPressed(ebiten.KeyF10) {
 		ebiten.SetFullscreen(!ebiten.IsFullscreen())
+	}
+
+	// Handle Performance Display Toggle (F12)
+	if inpututil.IsKeyJustPressed(ebiten.KeyF12) {
+		g.showPerf = !g.showPerf
 	}
 
 	g.console.Update()
@@ -172,8 +183,53 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// Blit framebuffer to screen
 	screen.WritePixels(g.framebuffer.Pix)
 
+	// UI Layer
+	g.uiLayer.Fill(q2d.Color{0, 0, 0, 0}) // Clear to transparent
+
 	// Draw Console
-	g.console.Draw(screen)
+	g.console.DrawTo(g.uiLayer)
+
+	// Draw Performance Display
+	if g.showPerf {
+		g.drawPerformanceDisplay(g.uiLayer)
+	}
+
+	// Upload and Draw UI Layer
+	g.uiLayerEbiten.WritePixels(g.uiLayer.Pix)
+	screen.DrawImage(g.uiLayerEbiten, nil)
+}
+
+func (g *Game) drawPerformanceDisplay(dst *q2d.Image) {
+	x := LogicalWidth - 120
+	y := 0
+
+	// Text Colors
+	red := q2d.Color{255, 0, 0, 255}
+	green := q2d.Color{50, 255, 50, 255}
+
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+
+	fps := ebiten.ActualFPS()
+	tps := ebiten.ActualTPS()
+
+	mb := float64(1024 * 1024)
+	allocMB := float64(m.Alloc) / mb
+	totalMB := float64(m.TotalAlloc) / mb
+	heapMB := float64(m.HeapInuse) / mb
+	sysMB := float64(m.Sys) / mb
+
+	// Cpu Header
+	dst.Text(q2d.Point{x, y}, red, q2d.FontNormal, false, "----- CPU -----")
+	dst.Text(q2d.Point{x, y + 10}, red, q2d.FontNormal, false, "  FPS %7.2f", fps)
+	dst.Text(q2d.Point{x, y + 20}, red, q2d.FontNormal, false, "  TPS %7.2f", tps)
+
+	// Mem Header
+	dst.Text(q2d.Point{x, y + 30}, green, q2d.FontNormal, false, "---- MEMORY ---")
+	dst.Text(q2d.Point{x, y + 40}, green, q2d.FontNormal, false, "ALLOC %7.2fMB", allocMB)
+	dst.Text(q2d.Point{x, y + 50}, green, q2d.FontNormal, false, "TOTAL %7.2fMB", totalMB)
+	dst.Text(q2d.Point{x, y + 60}, green, q2d.FontNormal, false, "HEAP  %7.2fMB", heapMB)
+	dst.Text(q2d.Point{x, y + 70}, green, q2d.FontNormal, false, "SYS   %7.2fMB", sysMB)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -321,6 +377,10 @@ func Main() {
 
 	rc := q3d.NewRenderContext()
 
+	// UI Initialization
+	uiLayer := q2d.NewImage(width, height)
+	uiLayerEbiten := ebiten.NewImage(width, height)
+
 	// Load Texture
 	texFile, err := assets.FS.Open("textures/grid_blue.png")
 	if err != nil {
@@ -372,22 +432,7 @@ func Main() {
 		Far:          8192,
 		RenderTarget: fb,
 	}
-	// Look at origin
-	// Camera LookAt is implicit in UpdateViewMatrix if we set rotation correctly?
-	// Wait, q3d.Camera.UpdateViewMatrix uses Rotation to determine forward vector.
-	// So we need to set the camera's Rotation to look at the origin.
-	// q3d.Camera.UpdateViewMatrix implementation:
-	// forward := c.Rotation.Rotate(mgl32.Vec3{0, 0, -1})
-	// target := c.Position.Add(forward)
-	// c.viewMatrix = mgl32.LookAtV(c.Position, target, up)
-	// Actually LookAtV computes the view matrix based on Pos, Target, Up.
-	// But UpdateViewMatrix GENERATES the target from the Rotation.
-	// So we must set the Rotation such that (0,0,-1) rotated points to the target.
-	// Target is Origin (0,0,0). Camera is at (0, 32, 32).
-	// Initial Camera Rotation (Pitch/Yaw)
-	// Position (0, 32, 512) looking at (0, 0, 0)
-	// Yaw: 0 (looking down -Z)
-	// Pitch: atan2(dy, dz) = atan2(-32, 512)
+	// Look at origin - See reasoning in previous version
 	initialPitch := math.Atan2(-32, 512)
 
 	game := &Game{
@@ -401,6 +446,8 @@ func Main() {
 		cameraPitch:   initialPitch,
 		cameraYaw:     0,
 		cube:          cube,
+		uiLayer:       uiLayer,
+		uiLayerEbiten: uiLayerEbiten,
 	}
 
 	InitInputMappings() // Initialize input mappings

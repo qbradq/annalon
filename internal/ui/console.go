@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"image"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -28,8 +27,8 @@ const (
 )
 
 type Console struct {
-	buffer       *q2d.Image
-	ebitenBuffer *ebiten.Image // To upload pixels to Ebiten
+	buffer *q2d.Image
+	// ebitenBuffer removed
 
 	logHistory     []string
 	commandHistory []string
@@ -45,7 +44,6 @@ type Console struct {
 func NewConsole(interpreter *command.Interpreter) *Console {
 	c := &Console{
 		buffer:       q2d.NewImage(ConsoleWidth, ConsoleHeight),
-		ebitenBuffer: ebiten.NewImage(ConsoleWidth, ConsoleHeight),
 		logHistory:   make([]string, 0, MaxHistory),
 		historyIndex: -1,
 		visibility:   VisibilityFull,
@@ -198,7 +196,7 @@ func (c *Console) executeCommand(cmd string) {
 	}
 }
 
-func (c *Console) Draw(screen *ebiten.Image) {
+func (c *Console) DrawTo(dst *q2d.Image) {
 	if c.visibility == VisibilityHidden {
 		return
 	}
@@ -233,21 +231,18 @@ func (c *Console) Draw(screen *ebiten.Image) {
 		drawY -= lineHeight
 	}
 
-	// Upload to Ebiten
-	c.ebitenBuffer.WritePixels(c.buffer.Pix)
-
-	// Draw to Screen
-	op := &ebiten.DrawImageOptions{}
+	// Blit to Destination
 	if c.visibility == VisibilityHalf {
 		// Draw bottom half of console to top half of screen
 		// Source: y=180 to 360
 		// Dest: y=0
 		halfH := ConsoleHeight / 2
-		sub := c.ebitenBuffer.SubImage(image.Rect(0, halfH, ConsoleWidth, ConsoleHeight)).(*ebiten.Image)
-		op.GeoM.Translate(0, 0) // At top of screen
-		screen.DrawImage(sub, op)
+
+		c.buffer.PushSubImage(q2d.Rectangle{0, halfH, ConsoleWidth, halfH})
+		dst.Blit(c.buffer, q2d.Point{0, 0})
+		c.buffer.PopSubImage()
 	} else {
 		// Full
-		screen.DrawImage(c.ebitenBuffer, op)
+		dst.Blit(c.buffer, q2d.Point{0, 0})
 	}
 }
