@@ -1,0 +1,1 @@
+{"mcpServers":{"gopls":{"command":"gopls","args":["mcp"],"alwaysAllow":["go_diagnostics","go_file_context","go_package_api","go_rename_symbol","go_search","go_symbol_references","go_vulncheck","go_workspace"]}}}

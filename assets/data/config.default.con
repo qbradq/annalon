@@ -1,5 +1,8 @@
 # Player configuration script for Annalon
 
+# Standard aliases
+alias exit quit
+
 # Standard binds
 bind "w" "+forward"
 bind "s" "+backward"
