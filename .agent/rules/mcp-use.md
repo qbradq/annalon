@@ -1,6 +1,6 @@
-# Agent Rules
-
-## MCP Server Usage
+---
+trigger: always_on
+---
 
 You have access to multiple MCP services. Use the tools they provide. Keep to
 the following rules.
@@ -19,3 +19,8 @@ documentation. Use training data as a last resort.
 - Prefer `gopls` MCP tool `go_symbol_references` for searching for symbol
   references.
 - Use `gopls` MCP tool `go_workspace` to get a summary of the Go workspace.
+
+### Filesystem
+
+Prefer using the tools provided by the `filesystem` MCP server for all file
+operations that it covers.
